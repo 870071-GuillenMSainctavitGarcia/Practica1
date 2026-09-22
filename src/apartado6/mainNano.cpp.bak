@@ -1,8 +1,6 @@
 #include <Arduino.h>
 #include <Arduino_LSM9DS1.h>
-#include <Wire.h> //LIBRERIA WIRE PARA I2C
 
-#define DIRECCION_ESCLAVO 0x08 // PRIMERA DIRECCIÓN LIBRE, DIRECCIÓN DEL ESCLAVO ESP32-S3
 // Estructura para almacenar un lote de lecturas de los 3 sensores
 struct LecturaIMU {
   float ax, ay, az; // Acelerómetro (g)
@@ -10,17 +8,17 @@ struct LecturaIMU {
   float mx, my, mz; // Magnetómetro (uT)
 };
 
-// Guardar 5 muestras (5 muestras x 200 ms = 1 segundo)
-const int TOTAL_MUESTRAS = 5;
+// Guardar 10 muestras (10 muestras x 100 ms = 1 segundo)
+const int TOTAL_MUESTRAS = 10;
 LecturaIMU bufferMuestras[TOTAL_MUESTRAS];
 int indiceMuestra = 0;
-bool programaActivo = false;
+
 // Variables de temporización 
 unsigned long ultimoMuestreo = 0;
 unsigned long ultimoEnvioUART = 0;
 
 //CONTSTANTES DE MUESTREO Y ENVÍO
-const unsigned long INTERVALO_MUESTREO = 200; // 200 ms
+const unsigned long INTERVALO_MUESTREO = 100; // 100 ms
 const unsigned long INTERVALO_ENVIO    = 1000; // 1000 ms (1 segundo)
 
 //iNICIALIZACIÓN
@@ -37,26 +35,11 @@ void setup() {
 }
 
 void loop() {
-  
-  
-  if (Serial.available() > 0) {
-    
-    // Al recibir cualquier dato, activamos la bandera
-    if (!programaActivo) {
-      programaActivo = true;
-      Serial.println("\n>>> ¡INICIANDO MUESTREO Y TRANSMISIÓN I2C! <<<\n");
-    }
-  }
-
-  // 2. Si el programa no está activo, se queda esperando y NO ejecuta el resto del loop
-  if (!programaActivo) {
-    return; // Sale del loop() inmediatamente
-  }
- 
+  //COJO EL MOMENTO ACTUAL EN MILISEGUNDOS PARA CONTROLAR EL TIEMPO DE MUESTREO Y ENVÍO
   unsigned long ahora = millis();
-  
-  //Muestreo cada 200 ms
-  //SI AHORA- LA ULTIMA VEZ QUE SE MUESTREO ES MAYOR O IGUAL A 200 ms, ENTONCES MUESTRO
+
+  //Muestreo cada 100 ms
+  //SI AHORA- LA ULTIMA VEZ QUE SE MUESTREO ES MAYOR O IGUAL A 100 ms, ENTONCES MUESTRO
   if (ahora - ultimoMuestreo >= INTERVALO_MUESTREO) {
     ultimoMuestreo = ahora;// EL ULTIMO MUESTREO AHORA ES EL MOMENTO ACTUAL
     // REINICIO DE VARIABLES PARA ALMACENAR LOS VALORES DE LOS SENSORES
@@ -78,7 +61,7 @@ void loop() {
     }
 
     // Guardar la muestra en el buffer si no hemos superado el límite
-    if (indiceMuestra < TOTAL_MUESTRAS) { //Si no hemos llegado a 5 muestras, guardamos la muestra
+    if (indiceMuestra < TOTAL_MUESTRAS) { //Si no hemos llegado a 10 muestras, guardamos la muestra
       bufferMuestras[indiceMuestra] = {ax, ay, az, gx, gy, gz, mx, my, mz}; // Guardar la muestra en el buffer
       indiceMuestra++; // Incrementar el índice para la siguiente muestra
     }
@@ -89,24 +72,37 @@ void loop() {
   if (ahora - ultimoEnvioUART >= INTERVALO_ENVIO) {
     ultimoEnvioUART = ahora;
 
+    Serial.println("\n============== MUESTRO CADA SEGUNDO ==================");
+    Serial.print("Muestras cada 100ms: ");
+    Serial.println(indiceMuestra);
+
     for (int i = 0; i < indiceMuestra; i++) {
-      Wire.beginTransmission(DIRECCION_ESCLAVO);
-      Wire.print(bufferMuestras[i].ax);
-      Wire.print(bufferMuestras[i].ay); 
-      Wire.print(bufferMuestras[i].az);
-      
-      Wire.print(bufferMuestras[i].gx);
-      Wire.print(bufferMuestras[i].gy); 
-      Wire.print(bufferMuestras[i].gz);
+      Serial.print("M[");
+      Serial.print(i + 1);
+      Serial.print("] ACC(g): ");
+      Serial.print(bufferMuestras[i].ax, 2); 
+      Serial.print(",");
+      Serial.print(bufferMuestras[i].ay, 2); 
+      Serial.print(",");
+      Serial.print(bufferMuestras[i].az, 2);
 
-      Wire.print(bufferMuestras[i].mx); 
-      Wire.print(bufferMuestras[i].my); 
-      Wire.print(bufferMuestras[i].mz);
-      Wire.endTransmission();
-      delay(2); // Pequeña pausa para asegurar la transmisión
+      Serial.print(" | GYR(dps): ");
+      Serial.print(bufferMuestras[i].gx, 2);
+      Serial.print(",");
+      Serial.print(bufferMuestras[i].gy, 2); 
+      Serial.print(",");
+      Serial.print(bufferMuestras[i].gz, 2);
+
+      Serial.print(" | MAG(uT): ");
+      Serial.print(bufferMuestras[i].mx, 2); 
+      Serial.print(",");
+      Serial.print(bufferMuestras[i].my, 2); 
+      Serial.print(",");
+      Serial.println(bufferMuestras[i].mz, 2);
     }
+    Serial.println("========================================================");
 
-    // Reiniciar el índice para almacenar las siguientes 5 muestras
+    // Reiniciar el índice para almacenar las siguientes 10 muestras
     indiceMuestra = 0;
   }
 }
