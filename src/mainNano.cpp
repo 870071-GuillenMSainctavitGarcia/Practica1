@@ -35,19 +35,29 @@ void setup() {
     while (1);
   }
 
-  Serial.println("==================================================");
-  Serial.println("NANO 33 BLE (MAESTRO) LISTA.");
+  
+  Serial.println("NANO 33 BLE MAESTRO");
   Serial.println("Envia cualquier caracter por Serial para comenzar...");
-  Serial.println("==================================================");
+  
 }
 
 void loop() {
   // Esperar a la orden por Monitor Serie para activar el flujo
   if (Serial.available() > 0) {
-    if (!programaActivo) {
-      programaActivo = true;
-      Serial.println("\n>>> ¡INICIANDO MUESTREO Y TRANSMISION I2C! <<<\n");
+    while (Serial.available() > 0) {
+      Serial.read();
     }
+    
+    // Alternar el estado (si estaba false pasa a true, y viceversa)
+    programaActivo = !programaActivo;
+
+    if (programaActivo) {
+      Serial.println("\n>>> [SISTEMA ACTIVADO] Transmitiendo datos I2C... <<<");
+    } else {
+      Serial.println("\n>>> [SISTEMA PAUSADO] Muestreo e I2C detenidos. <<<");
+      indiceMuestra = 0; // Limpiar índice del buffer al pausar
+    }
+  
   }
 
   if (!programaActivo) {
