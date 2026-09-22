@@ -1,112 +1,91 @@
 #include <Arduino.h>
 #include <Arduino_LSM9DS1.h>
-#include <Wire.h> //LIBRERIA WIRE PARA I2C
+#include <Wire.h>
 
-#define DIRECCION_ESCLAVO 0x08 // PRIMERA DIRECCIÓN LIBRE, DIRECCIÓN DEL ESCLAVO ESP32-S3
-// Estructura para almacenar un lote de lecturas de los 3 sensores
+#define DIRECCION_ESCLAVO 0x08
+
+// Estructura de 36 bytes (9 floats x 4 bytes)
 struct LecturaIMU {
   float ax, ay, az; // Acelerómetro (g)
   float gx, gy, gz; // Giroscopio (dps)
   float mx, my, mz; // Magnetómetro (uT)
 };
 
-// Guardar 5 muestras (5 muestras x 200 ms = 1 segundo)
 const int TOTAL_MUESTRAS = 5;
 LecturaIMU bufferMuestras[TOTAL_MUESTRAS];
 int indiceMuestra = 0;
 bool programaActivo = false;
-// Variables de temporización 
+
 unsigned long ultimoMuestreo = 0;
 unsigned long ultimoEnvioUART = 0;
 
-//CONTSTANTES DE MUESTREO Y ENVÍO
 const unsigned long INTERVALO_MUESTREO = 200; // 200 ms
-const unsigned long INTERVALO_ENVIO    = 1000; // 1000 ms (1 segundo)
+const unsigned long INTERVALO_ENVIO    = 1000; // 1000 ms
 
-//iNICIALIZACIÓN
 void setup() {
   Serial.begin(115200);
-  while (!Serial && millis() < 3000); // Espera de seguridad USB
+  while (!Serial && millis() < 3000);
 
-  // Inicializar el sensor IMU LSM9DS1 de la Nano 33 BLE
+  // Inicializar bus I2C en modo Maestro
+  Wire.begin();
+
+  // Inicializar sensor IMU interno (LSM9DS1)
   if (!IMU.begin()) {
     Serial.println("¡Error al inicializar la IMU!");
-    while (1); // Bloqueo si falla el sensor
+    while (1);
   }
 
+  Serial.println("==================================================");
+  Serial.println("NANO 33 BLE (MAESTRO) LISTA.");
+  Serial.println("Envia cualquier caracter por Serial para comenzar...");
+  Serial.println("==================================================");
 }
 
 void loop() {
-  
-  
+  // Esperar a la orden por Monitor Serie para activar el flujo
   if (Serial.available() > 0) {
-    
-    // Al recibir cualquier dato, activamos la bandera
     if (!programaActivo) {
       programaActivo = true;
-      Serial.println("\n>>> ¡INICIANDO MUESTREO Y TRANSMISIÓN I2C! <<<\n");
+      Serial.println("\n>>> ¡INICIANDO MUESTREO Y TRANSMISION I2C! <<<\n");
     }
   }
 
-  // 2. Si el programa no está activo, se queda esperando y NO ejecuta el resto del loop
   if (!programaActivo) {
-    return; // Sale del loop() inmediatamente
+    return; // Mantiene en espera hasta recibir la tecla
   }
- 
+
   unsigned long ahora = millis();
-  
-  //Muestreo cada 200 ms
-  //SI AHORA- LA ULTIMA VEZ QUE SE MUESTREO ES MAYOR O IGUAL A 200 ms, ENTONCES MUESTRO
+
+  // 1. Muestreo cada 200 ms
   if (ahora - ultimoMuestreo >= INTERVALO_MUESTREO) {
-    ultimoMuestreo = ahora;// EL ULTIMO MUESTREO AHORA ES EL MOMENTO ACTUAL
-    // REINICIO DE VARIABLES PARA ALMACENAR LOS VALORES DE LOS SENSORES
+    ultimoMuestreo = ahora;
+
     float ax = 0, ay = 0, az = 0;
     float gx = 0, gy = 0, gz = 0;
     float mx = 0, my = 0, mz = 0;
 
-    // Leer Acelerómetro si hay datos disponibles
-    if (IMU.accelerationAvailable()) {
-      IMU.readAcceleration(ax, ay, az);
-    }
-    // Leer Giroscopio si hay datos disponibles
-    if (IMU.gyroscopeAvailable()) {
-      IMU.readGyroscope(gx, gy, gz);
-    }
-    // Leer Magnetómetro si hay datos disponibles
-    if (IMU.magneticFieldAvailable()) {
-      IMU.readMagneticField(mx, my, mz);
-    }
+    if (IMU.accelerationAvailable())  IMU.readAcceleration(ax, ay, az);
+    if (IMU.gyroscopeAvailable())     IMU.readGyroscope(gx, gy, gz);
+    if (IMU.magneticFieldAvailable()) IMU.readMagneticField(mx, my, mz);
 
-    // Guardar la muestra en el buffer si no hemos superado el límite
-    if (indiceMuestra < TOTAL_MUESTRAS) { //Si no hemos llegado a 5 muestras, guardamos la muestra
-      bufferMuestras[indiceMuestra] = {ax, ay, az, gx, gy, gz, mx, my, mz}; // Guardar la muestra en el buffer
-      indiceMuestra++; // Incrementar el índice para la siguiente muestra
+    if (indiceMuestra < TOTAL_MUESTRAS) {
+      bufferMuestras[indiceMuestra] = {ax, ay, az, gx, gy, gz, mx, my, mz};
+      indiceMuestra++;
     }
   }
 
-  // Transmisión UART cada segundo
- //MISMA ESTRUCTURA QUE ANTES
+  // 2. Transmisión I2C binaria cada 1 segundo
   if (ahora - ultimoEnvioUART >= INTERVALO_ENVIO) {
     ultimoEnvioUART = ahora;
 
     for (int i = 0; i < indiceMuestra; i++) {
       Wire.beginTransmission(DIRECCION_ESCLAVO);
-      Wire.print(bufferMuestras[i].ax);
-      Wire.print(bufferMuestras[i].ay); 
-      Wire.print(bufferMuestras[i].az);
-      
-      Wire.print(bufferMuestras[i].gx);
-      Wire.print(bufferMuestras[i].gy); 
-      Wire.print(bufferMuestras[i].gz);
-
-      Wire.print(bufferMuestras[i].mx); 
-      Wire.print(bufferMuestras[i].my); 
-      Wire.print(bufferMuestras[i].mz);
+      // Envío del puntero de memoria del struct (36 bytes exactos)
+      Wire.write((uint8_t*)&bufferMuestras[i], sizeof(LecturaIMU));
       Wire.endTransmission();
-      delay(2); // Pequeña pausa para asegurar la transmisión
+      delay(2); // Pausa de estabilización entre paquetes
     }
 
-    // Reiniciar el índice para almacenar las siguientes 5 muestras
-    indiceMuestra = 0;
+    indiceMuestra = 0; // Reinicio del buffer
   }
 }
