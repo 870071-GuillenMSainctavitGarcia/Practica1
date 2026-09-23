@@ -4,7 +4,7 @@
 ## Descripción General
 Este proyecto implementa un sistema embebido distribuido enfocado en la adquisición de datos de sensores, generación y tratamiento de señales (ADC, PWM, Timers) y comunicación bidireccional sobre el bus **I2C** entre dos plataformas de desarrollo:
 **Arduino Nano 33 BLE** y **ESP32-S3**.
-CLAUDIA ES UNA PUTA
+
 
 ## ¿Como probar los subapartados del proyecto?
 
