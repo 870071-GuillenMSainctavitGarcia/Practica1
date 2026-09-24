@@ -5,7 +5,7 @@
 #define ADC_PIN A0
 #define PWM_PIN D2 // Pin de salida PWM para el osciloscopio
 
-// Configuración del objeto PWM usando la API nativa de Mbed
+// Configuración del objeto PWM usando la API de Mbed
 mbed::PwmOut salidaPWM(digitalPinToPinName(PWM_PIN));
 
 void setup() {

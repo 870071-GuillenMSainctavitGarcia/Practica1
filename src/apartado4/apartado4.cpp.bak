@@ -18,7 +18,7 @@ void ISR_TimerADC() {
   flagEnviarADC = true;
 }
 
-//Función  en la que se va a aprocesar el string
+//Función  en la que se va a procesar el string
 void procesarComando(String cmd) {
   cmd.trim(); // Utilizado para eliminar espacios en blanco al inicio y al final del comando 
 
@@ -28,8 +28,8 @@ void procesarComando(String cmd) {
   else if (cmd.startsWith("ADC(") && cmd.endsWith(")")) { // Si el String es ADC(x) entro en esta funcion
     int x = cmd.substring(4, cmd.length() - 1).toInt(); //Retiro el valor de x del String y lo convierto a int
     // Se encuentra entre el valor 4 y el valor de la longitud del string menos 1
-    timerADC.timerStop();
-    //Parón por seguridad, por si el timer estaba corriendo, lo paro antes de volver a configurarlo
+    timerADC.timerStop();//Parón por seguridad, por si el timer estaba corriendo, lo paro antes de volver a configurarlo
+    
     if (x > 0) { // Compruebo que x sea mayor que cero
       timerADC.setupTimer((uint32_t)x * 1000000, ISR_TimerADC); 
       // Lanzo la función del BBTImer, cuando llegue a x *  1000000 de micros
@@ -75,7 +75,8 @@ void loop() {
         procesarComando(bufferUART); 
         bufferUART = ""; // Se vacía el buffer para la siguiente lectura
       }
-    } else {
+    } 
+    else {
       bufferUART += c; //Se suma al caracter al buffer que ya había y se va formando el string
     }
   }

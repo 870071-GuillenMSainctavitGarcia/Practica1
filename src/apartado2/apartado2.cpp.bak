@@ -1,12 +1,12 @@
 #include <Arduino.h>
-#include "BBTimer.h" // Asegúrate de tener la cabecera en tu proyecto/carpeta
+#include "BBTimer.h" // LIBRERIA DE ARHCIVO DEL PROFESOR
 
 #define POT_PIN A0
 
-// Instanciamos el temporizador por hardware (usamos TIMER3 para no interferir con Mbed)
+// TIMER 3 LIBRE, LO ASIGNO
 BBTimer miTimer(BB_TIMER3);
 
-// Flag volátil para comunicar la ISR con el loop principal
+// Flag LECTURA
 volatile bool flagLectura = false;
 
 // Callback que ejecuta la ISR del hardware timer
