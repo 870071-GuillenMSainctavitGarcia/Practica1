@@ -6,16 +6,6 @@ Este proyecto implementa un sistema embebido distribuido enfocado en la adquisic
 **Arduino Nano 33 BLE** y **ESP32-S3**.
 
 
-## ¿Como probar los subapartados del proyecto?
-
-Como cada apartado es un código distinto:
-
-1. Si vas a probar los apartados del **1, 2, 3, 4 y 6**, hay que copiarlos abre el archivo de la carpeta correspondiente y ponerlos en el main.cpp para lanzarlos (ej. `src/apartado1/apartado1.cpp.bak`).
-2. Si vas a probar los **Apartados 5 y 7** abre los archivos correspondientes y pruebalos en los archivos correspondientes:
-   * Carga `src/mainNano.cpp` en la Arduino Nano 33 BLE.
-   * Carga `src/mainESP32.cpp` en la ESP32-S3.
-3. Abre el **Monitor Serie** a **115200 baudios**.
-
 ## Estructura del Proyecto
 
 ```text
