@@ -34,7 +34,6 @@ void setup() {
     Serial.println("¡Error al inicializar la IMU!");
     while (1);
   }
-
   
   Serial.println("NANO 33 BLE MAESTRO");
   Serial.println("Envia cualquier caracter por Serial para comenzar...");
